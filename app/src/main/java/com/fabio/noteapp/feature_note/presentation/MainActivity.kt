@@ -1,4 +1,4 @@
-package com.fabio.noteapp
+package com.fabio.noteapp.feature_note.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
