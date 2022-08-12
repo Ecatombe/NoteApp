@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddEditNoteViewModel @Inject constructor(
-    private val notesUseCases: NotesUseCases,
+    private val noteUseCases: NotesUseCases,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -30,7 +30,7 @@ class AddEditNoteViewModel @Inject constructor(
 
     private val _noteContent = mutableStateOf(
         NoteTextFieldState(
-            hint = "Enter content..."
+            hint = "Enter some content"
         )
     )
     val noteContent: State<NoteTextFieldState> = _noteContent
@@ -45,15 +45,15 @@ class AddEditNoteViewModel @Inject constructor(
 
     init {
         savedStateHandle.get<Int>("noteId")?.let { noteId ->
-            if (noteId != -1){
+            if (noteId != -1) {
                 viewModelScope.launch {
-                    notesUseCases.getNote(noteId)?.also { note->
+                    noteUseCases.getNote(noteId)?.also { note ->
                         currentNoteId = note.id
                         _noteTitle.value = noteTitle.value.copy(
                             text = note.title,
                             isHintVisible = false
                         )
-                        _noteContent.value = noteContent.value.copy(
+                        _noteContent.value = _noteContent.value.copy(
                             text = note.content,
                             isHintVisible = false
                         )
@@ -73,28 +73,28 @@ class AddEditNoteViewModel @Inject constructor(
             }
             is AddEditNoteEvent.ChangeTitleFocus -> {
                 _noteTitle.value = noteTitle.value.copy(
-                    isHintVisible = event.focusState.isFocused &&
+                    isHintVisible = !event.focusState.isFocused &&
                             noteTitle.value.text.isBlank()
                 )
             }
             is AddEditNoteEvent.EnteredContent -> {
-                _noteContent.value = noteContent.value.copy(
+                _noteContent.value = _noteContent.value.copy(
                     text = event.value
                 )
             }
             is AddEditNoteEvent.ChangeContentFocus -> {
-                _noteContent.value = noteContent.value.copy(
-                    isHintVisible = event.focusState.isFocused &&
-                            noteContent.value.text.isBlank()
+                _noteContent.value = _noteContent.value.copy(
+                    isHintVisible = !event.focusState.isFocused &&
+                            _noteContent.value.text.isBlank()
                 )
             }
             is AddEditNoteEvent.ChangeColor -> {
                 _noteColor.value = event.color
             }
-            AddEditNoteEvent.SaveNote -> {
+            is AddEditNoteEvent.SaveNote -> {
                 viewModelScope.launch {
                     try {
-                        notesUseCases.addNote(
+                        noteUseCases.addNote(
                             Note(
                                 title = noteTitle.value.text,
                                 content = noteContent.value.text,
@@ -104,11 +104,10 @@ class AddEditNoteViewModel @Inject constructor(
                             )
                         )
                         _eventFlow.emit(UiEvent.SaveNote)
-                    }
-                    catch (e: InvalidNoteException){
+                    } catch (e: InvalidNoteException) {
                         _eventFlow.emit(
                             UiEvent.ShowSnackbar(
-                                message = e.message ?: "Unable to save note"
+                                message = e.message ?: "Couldn't save note"
                             )
                         )
                     }
@@ -121,5 +120,4 @@ class AddEditNoteViewModel @Inject constructor(
         data class ShowSnackbar(val message: String) : UiEvent()
         object SaveNote : UiEvent()
     }
-
 }
